@@ -6,7 +6,7 @@ module Beaker
       @request = Rack::Request.new(env)
 
       # Can not handle error correctly now!
-      
+
       self.class.routes[@request.request_method].each do |path, block|
         return block.call if path.match @request.path_info
       end
@@ -79,6 +79,12 @@ module Beaker
 
     # init routes
     reset!
+
+    # hook to get subclass initialized
+    def self.inherited(subclass)
+      super
+      subclass.reset!
+    end
 
   end
 end

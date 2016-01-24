@@ -1,6 +1,6 @@
 require_relative 'lib/beaker'
 
-class Beaker::Base
+class App < Beaker::Base
   get '/' do
     ['200', {'Content-Type' => 'text/html'}, ['Hello, world!']]
   end
@@ -11,4 +11,4 @@ class Beaker::Base
 
 end
 
-Beaker::Base.run!
+App.run!
