@@ -2,11 +2,15 @@ require_relative 'lib/beaker'
 
 class App < Beaker::Base
   get '/' do
-    ['200', {'Content-Type' => 'text/html'}, ['Hello, world!']]
+    'Hello, world!'
   end
 
-  get /\w+/ do
-    ['200', {'Content-Type' => 'text/html'}, ['Regexp.']]
+  get '/admin' do
+    403
+  end
+
+  get /reg\/\w+/ do
+    'Regexp.'
   end
 
 end

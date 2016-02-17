@@ -1,17 +1,72 @@
 require 'rack'
 
 module Beaker
+  class Response < Rack::Response
+    def initialize(*)
+      super
+      headers['Content-Type'] ||= 'text/html'
+    end
+
+    def finish
+      [status.to_i, headers, body]
+    end
+  end
+
   class Base
     def call(env)
       @request = Rack::Request.new(env)
+      @response = Response.new
 
-      # Can not handle error correctly now!
+      invoke { dispatch }
 
-      self.class.routes[@request.request_method].each do |path, block|
-        return block.call if path.match @request.path_info
+      @response.finish
+    end
+
+    # exit the current block
+    def halt(*res)
+      res = res.first if res.length == 1
+      throw :halt, res
+    end
+
+    private
+
+    # dispatch route
+    def dispatch
+      routes = self.class.routes[@request.request_method]
+      if routes
+        routes.each do |path, block|
+          route_eval &block if path.match @request.path_info
+        end
       end
 
-      ['404', {'Content-Type' => 'text/html'}, ['Not found!']]
+      route_missing
+    end
+
+    # eval for a route block
+    def route_eval(&block)
+      throw :halt, instance_eval(&block)
+    end
+
+    # route_missing
+    def route_missing
+      throw :halt, [404, {'Content-Type' => 'text/html'}, ['Not found!']]
+    end
+
+    # invoke a block that throws :halt
+    # and set the response
+    def invoke
+      res = catch(:halt) { yield }
+
+      if String === res or Fixnum === res
+        res = [res]
+      end
+      if Array === res and Fixnum === res.first
+        @response.status = res.shift
+        @response.body = res.pop if res.size > 0
+        @response.headers.merge!(*res) if res.size > 0
+      elsif res.respond_to? :each
+        @response.body = res
+      end
     end
 
     class << self
@@ -82,7 +137,6 @@ module Beaker
 
     # hook to get subclass initialized
     def self.inherited(subclass)
-      super
       subclass.reset!
     end
 
